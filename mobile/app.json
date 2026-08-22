@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "FreeCall",
+    "slug": "freecall",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "freecall",
+    "backgroundColor": "#080b14",
+    "splash": {
+      "backgroundColor": "#080b14",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.freecall",
+      "infoPlist": {
+        "NSCameraUsageDescription": "FreeCall needs your camera for video calls.",
+        "NSMicrophoneUsageDescription": "FreeCall needs your microphone for calls.",
+        "UIBackgroundModes": ["audio", "voip", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.example.freecall",
+      "adaptiveIcon": {
+        "backgroundColor": "#4560e0"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+      ]
+    },
+    "plugins": [
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "FreeCall needs your camera for video calls.",
+          "microphonePermission": "FreeCall needs your microphone for calls."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#4560e0"
+        }
+      ]
+    ],
+    "extra": {
+      "//": "Set serverUrl to your machine's LAN IP so a physical phone can reach the dev server.",
+      "serverUrl": "http://192.168.1.100:4000"
+    }
+  }
+}

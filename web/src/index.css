@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink-950 text-slate-100 font-sans antialiased;
+    /* Prevent iOS rubber-banding from revealing white behind the call UI */
+    overscroll-behavior: none;
+  }
+
+  /* Respect the notch / home indicator on phones */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           font-medium transition-all duration-150 select-none
+           disabled:opacity-50 disabled:cursor-not-allowed
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-400/70;
+  }
+  .btn-primary {
+    @apply btn bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98]
+           shadow-lg shadow-accent-500/20;
+  }
+  .btn-ghost {
+    @apply btn bg-white/5 text-slate-200 hover:bg-white/10 active:scale-[0.98]
+           border border-white/10;
+  }
+  .btn-danger {
+    @apply btn bg-rose-500 text-white hover:bg-rose-600 active:scale-[0.98]
+           shadow-lg shadow-rose-500/25;
+  }
+
+  .field {
+    @apply w-full rounded-xl bg-ink-800/80 border border-white/10 px-4 py-3
+           text-slate-100 placeholder:text-slate-500 outline-none
+           focus:border-accent-500/60 focus:ring-2 focus:ring-accent-500/25
+           transition;
+  }
+
+  .card {
+    @apply rounded-2xl bg-ink-900/70 border border-white/10 backdrop-blur-sm;
+  }
+
+  /* Round icon button used across the in-call control bar */
+  .ctrl {
+    @apply flex h-14 w-14 items-center justify-center rounded-full
+           transition-all duration-150 active:scale-95
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50;
+  }
+  .ctrl-on {
+    @apply ctrl bg-white/10 text-white hover:bg-white/20 backdrop-blur;
+  }
+  /* "off" = the feature is disabled (muted / camera off) — inverted for clarity */
+  .ctrl-off {
+    @apply ctrl bg-white text-ink-900 hover:bg-slate-200;
+  }
+  .ctrl-danger {
+    @apply ctrl bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-500/30;
+  }
+  .ctrl-accent {
+    @apply ctrl bg-accent-500 text-white hover:bg-accent-600;
+  }
+}
+
+/* Thin, unobtrusive scrollbars for the chat + lists */
+@layer utilities {
+  .scroll-slim::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-slim::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+  }
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+}

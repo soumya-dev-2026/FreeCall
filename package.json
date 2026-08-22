@@ -1,0 +1,21 @@
+{
+  "name": "freecall",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FreeCall — a 1-to-1 (and group) audio/video calling app. Node.js + Socket.IO signaling, React web client, React Native mobile client, WebRTC media.",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev:server": "npm --workspace server run dev",
+    "dev:web": "npm --workspace web run dev",
+    "build:server": "npm --workspace server run build",
+    "build:web": "npm --workspace web run build",
+    "typecheck": "npm --workspace server run typecheck && npm --workspace web run typecheck",
+    "test": "node --experimental-strip-types --import ./tools/harness/hooks.mjs tools/harness/run.mjs",
+    "install:all": "npm install && npm --prefix mobile install"
+  },
+  "keywords": ["webrtc", "socket.io", "video-call", "react", "react-native"],
+  "license": "MIT"
+}

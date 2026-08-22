@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# builds
+dist/
+build/
+web/dist/
+server/dist/
+mobile/android/
+mobile/ios/
+
+# env
+.env
+*.env
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# misc
+.DS_Store
+.vscode/
+.idea/
+coverage/
+*.tsbuildinfo
+
+# expo / RN
+.expo/
+mobile/.expo/
