@@ -11,6 +11,18 @@
 export type CallType = "direct" | "group";
 export type CallStatus = "completed" | "missed" | "rejected" | "canceled";
 
+export interface SocialInfo {
+  bio: string;
+  website: string;
+  instagram: string;
+  linkedin: string;
+}
+
+export interface ProfileVisibility {
+  phone: boolean;
+  social: boolean;
+}
+
 export interface PublicUser {
   id: string;
   username: string;
@@ -18,9 +30,15 @@ export interface PublicUser {
   avatarUrl: string;
   online: boolean;
   lastSeen: number | null;
+  phoneNumber?: string;
+  social?: SocialInfo;
 }
 
-export interface AuthUser extends PublicUser {}
+export interface AuthUser extends PublicUser {
+  phoneNumber: string;
+  social: SocialInfo;
+  visibility: ProfileVisibility;
+}
 
 export interface MediaState {
   audio: boolean;

@@ -8,11 +8,57 @@
  */
 
 const RINGTONE_URL = "/sounds/ringtone.mp3";
+const DB_NAME = "freecall-settings";
+const STORE_NAME = "audio";
+const CUSTOM_KEY = "ringtone";
+
+function ringtoneStore(mode: IDBTransactionMode): Promise<IDBObjectStore> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result.transaction(STORE_NAME, mode).objectStore(STORE_NAME));
+  });
+}
+
+async function customRingtone(): Promise<Blob | null> {
+  const store = await ringtoneStore("readonly");
+  return new Promise((resolve, reject) => {
+    const request = store.get(CUSTOM_KEY);
+    request.onsuccess = () => resolve(request.result instanceof Blob ? request.result : null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function setCustomRingtone(file: File): Promise<void> {
+  if (!file.type.startsWith("audio/")) throw new Error("Choose an audio file.");
+  if (file.size > 8 * 1024 * 1024) throw new Error("Ringtone must be smaller than 8 MB.");
+  const store = await ringtoneStore("readwrite");
+  await new Promise<void>((resolve, reject) => {
+    const request = store.put(file, CUSTOM_KEY);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function clearCustomRingtone(): Promise<void> {
+  const store = await ringtoneStore("readwrite");
+  await new Promise<void>((resolve, reject) => {
+    const request = store.delete(CUSTOM_KEY);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function hasCustomRingtone(): Promise<boolean> {
+  return Boolean(await customRingtone());
+}
 
 class Ringer {
   private el: HTMLAudioElement | null = null;
   private ctx: AudioContext | null = null;
   private synthTimer: number | null = null;
+  private objectUrl: string | null = null;
   private playing = false;
 
   /** Play the custom mp3 on loop. `outgoing` uses a quieter volume. */
@@ -21,7 +67,10 @@ class Ringer {
     this.playing = true;
 
     try {
-      const el = new Audio(RINGTONE_URL);
+      const custom = await customRingtone().catch(() => null);
+      const objectUrl = custom ? URL.createObjectURL(custom) : null;
+      const el = new Audio(objectUrl ?? RINGTONE_URL);
+      this.objectUrl = objectUrl;
       el.loop = true;
       el.volume = outgoing ? 0.28 : 0.85;
       el.preload = "auto";
@@ -44,6 +93,10 @@ class Ringer {
         /* ignore */
       }
       this.el = null;
+    }
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
     }
     if (this.synthTimer !== null) {
       clearInterval(this.synthTimer);

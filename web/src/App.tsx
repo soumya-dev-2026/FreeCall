@@ -10,7 +10,7 @@ import { SpinnerIcon } from "./components/Icons";
 import { registerServiceWorker } from "./lib/push";
 
 function Shell() {
-  const { user, socket, loading, connected, logout } = useAuth();
+  const { user, socket, loading, connected, logout, updateProfile } = useAuth();
   const call = useCall(socket, user?.id ?? null);
   const { users, loading: usersLoading } = usePresence(socket, Boolean(user));
 
@@ -89,6 +89,7 @@ function Shell() {
         historyVersion={call.historyVersion}
         onCall={(callees, video) => void call.startCall(callees, video)}
         onLogout={logout}
+        onUpdateProfile={updateProfile}
       />
     </>
   );

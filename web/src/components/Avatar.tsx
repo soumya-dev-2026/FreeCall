@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { colorFor, cx, initialsOf } from "../lib/utils";
 
 interface AvatarProps {
@@ -30,6 +30,8 @@ export function Avatar({
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(src) && !failed;
 
+  useEffect(() => setFailed(false), [src]);
+
   return (
     <div className={cx("relative shrink-0", size, className)}>
       {showImage ? (
@@ -38,7 +40,7 @@ export function Avatar({
           alt=""
           onError={() => setFailed(true)}
           className={cx(
-            "h-full w-full rounded-full object-cover bg-ink-700",
+            "block h-full w-full rounded-full object-cover bg-ink-700",
             ring && "ring-2 ring-white/20"
           )}
         />

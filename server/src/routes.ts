@@ -11,7 +11,8 @@ import {
   publicUser,
   removeExpoToken,
   removePushSub,
-  toPublicUser,
+  toAuthUser,
+  updateUserProfile,
   verifyPassword,
 } from "./store";
 
@@ -50,7 +51,7 @@ api.post("/auth/register", (req, res) => {
     });
     return res
       .status(201)
-      .json({ token: signToken(user), user: toPublicUser(user) });
+      .json({ token: signToken(user), user: toAuthUser(user) });
   } catch (err) {
     const status = (err as { status?: number }).status ?? 500;
     return res.status(status).json({ error: (err as Error).message });
@@ -66,11 +67,43 @@ api.post("/auth/login", (req, res) => {
   if (!user || !verifyPassword(user, password)) {
     return res.status(401).json({ error: "Invalid username or password" });
   }
-  return res.json({ token: signToken(user), user: toPublicUser(user) });
+  return res.json({ token: signToken(user), user: toAuthUser(user) });
 });
 
 api.get("/auth/me", requireAuth, (req: AuthedRequest, res) => {
-  return res.json({ user: toPublicUser(req.user!) });
+  return res.json({ user: toAuthUser(req.user!) });
+});
+
+api.put("/auth/me", requireAuth, (req: AuthedRequest, res) => {
+  const { displayName, avatarUrl, phoneNumber, social, visibility } = req.body ?? {};
+  if (typeof displayName !== "string" || displayName.trim().length < 2 || displayName.trim().length > 60) {
+    return res.status(400).json({ error: "Name must be 2–60 characters" });
+  }
+  if (typeof avatarUrl !== "string" || avatarUrl.length > 900_000) {
+    return res.status(400).json({ error: "Profile image is too large" });
+  }
+  const phone = typeof phoneNumber === "string" ? phoneNumber.trim() : "";
+  if (phone && !/^\+?[0-9 ()-]{7,20}$/.test(phone)) {
+    return res.status(400).json({ error: "Enter a valid phone number" });
+  }
+  const clean = (value: unknown, max: number) =>
+    typeof value === "string" ? value.trim().slice(0, max) : "";
+  const user = updateUserProfile(req.user!, {
+    displayName: displayName.trim(),
+    avatarUrl: avatarUrl.trim() || req.user!.avatarUrl,
+    phoneNumber: phone,
+    social: {
+      bio: clean(social?.bio, 240),
+      website: clean(social?.website, 200),
+      instagram: clean(social?.instagram, 80),
+      linkedin: clean(social?.linkedin, 200),
+    },
+    visibility: {
+      phone: Boolean(visibility?.phone),
+      social: Boolean(visibility?.social),
+    },
+  });
+  return res.json({ user: toAuthUser(user) });
 });
 
 /* ---------------------------------------------------------------- users */

@@ -14,7 +14,9 @@ import type {
   CallType,
   ChatMessage,
   MediaState,
+  ProfileVisibility,
   PublicUser,
+  SocialInfo,
 } from "./shared/types";
 
 /* ---------------------------------------------------------------- users */
@@ -25,6 +27,9 @@ export interface UserRecord {
   displayName: string;
   passwordHash: string;
   avatarUrl: string;
+  phoneNumber: string;
+  social: SocialInfo;
+  visibility: ProfileVisibility;
   lastSeen: number | null;
 }
 
@@ -58,6 +63,9 @@ export function createUser(input: {
     displayName: input.displayName || input.username,
     passwordHash: bcrypt.hashSync(input.password, 10),
     avatarUrl: input.avatarUrl?.trim() || defaultAvatar(input.username),
+    phoneNumber: "",
+    social: { bio: "", website: "", instagram: "", linkedin: "" },
+    visibility: { phone: false, social: true },
     lastSeen: null,
   };
   users.set(rec.id, rec);
@@ -91,7 +99,38 @@ export function toPublicUser(rec: UserRecord): PublicUser {
     avatarUrl: rec.avatarUrl,
     online: isOnline(rec.id),
     lastSeen: rec.lastSeen,
+    ...(rec.visibility.phone && rec.phoneNumber
+      ? { phoneNumber: rec.phoneNumber }
+      : {}),
+    ...(rec.visibility.social ? { social: { ...rec.social } } : {}),
   };
+}
+
+export function toAuthUser(rec: UserRecord) {
+  return {
+    ...toPublicUser(rec),
+    phoneNumber: rec.phoneNumber,
+    social: { ...rec.social },
+    visibility: { ...rec.visibility },
+  };
+}
+
+export function updateUserProfile(
+  rec: UserRecord,
+  input: {
+    displayName: string;
+    avatarUrl: string;
+    phoneNumber: string;
+    social: SocialInfo;
+    visibility: ProfileVisibility;
+  }
+): UserRecord {
+  rec.displayName = input.displayName;
+  rec.avatarUrl = input.avatarUrl;
+  rec.phoneNumber = input.phoneNumber;
+  rec.social = { ...input.social };
+  rec.visibility = { ...input.visibility };
+  return rec;
 }
 
 export function publicUser(id: string): PublicUser | undefined {

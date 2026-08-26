@@ -25,6 +25,7 @@ export function ChatPanel({
   onSend,
 }: Props) {
   const [draft, setDraft] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -49,6 +50,7 @@ export function ChatPanel({
     onSend(text);
     setDraft("");
   };
+  const emojis = ["😀", "😂", "😍", "🥳", "👍", "👏", "❤️", "🔥", "🎉", "😢", "😮", "🙏"];
 
   return (
     <aside
@@ -136,8 +138,20 @@ export function ChatPanel({
 
       <form
         onSubmit={submit}
-        className="flex items-center gap-2 border-t border-white/10 p-3 safe-bottom"
+        className="relative flex items-center gap-2 border-t border-white/10 p-3 safe-bottom"
       >
+        {emojiOpen && (
+          <div className="absolute bottom-full left-3 mb-2 grid grid-cols-6 gap-1 rounded-xl bg-ink-800 p-2 shadow-xl ring-1 ring-white/10">
+            {emojis.map((emoji) => (
+              <button key={emoji} type="button" onClick={() => { setDraft((value) => value + emoji); inputRef.current?.focus(); }} className="rounded-lg p-1.5 text-xl transition hover:bg-white/10" aria-label={`Add ${emoji} emoji`}>
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+        <button type="button" onClick={() => setEmojiOpen((value) => !value)} className="rounded-lg p-2 text-xl text-slate-300 transition hover:bg-white/10" aria-label="Choose emoji" aria-expanded={emojiOpen}>
+          😊
+        </button>
         <input
           ref={inputRef}
           value={draft}

@@ -27,6 +27,7 @@ interface AuthState {
     avatarUrl?: string;
   }) => Promise<void>;
   logout: () => void;
+  updateProfile: (input: Omit<AuthUser, "id" | "username" | "online" | "lastSeen">) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -118,9 +119,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setConnected(false);
   }, []);
 
+  const updateProfile = useCallback(async (
+    input: Omit<AuthUser, "id" | "username" | "online" | "lastSeen">
+  ) => {
+    const { user: updated } = await api.updateProfile(input);
+    setUser(updated);
+  }, []);
+
   const value = useMemo<AuthState>(
-    () => ({ user, socket, loading, connected, login, register, logout }),
-    [user, socket, loading, connected, login, register, logout]
+    () => ({ user, socket, loading, connected, login, register, logout, updateProfile }),
+    [user, socket, loading, connected, login, register, logout, updateProfile]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

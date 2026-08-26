@@ -22,6 +22,11 @@ import {
   type Facing,
 } from "../lib/media";
 import { ringer, stopVibrate, vibrateIncoming } from "../lib/ringer";
+import {
+  createVirtualBackground,
+  type BackgroundMode,
+  type VirtualBackgroundProcessor,
+} from "../lib/virtualBackground";
 import { api } from "../lib/api";
 import {
   clearCallNotification,
@@ -83,6 +88,7 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
   const [screenOn, setScreenOn] = useState(false);
   const [facing, setFacing] = useState<Facing>("user");
   const [canFlip, setCanFlip] = useState(false);
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("none");
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unread, setUnread] = useState(0);
@@ -102,6 +108,7 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
   /** Camera track parked while a screen share is active. */
   const parkedCameraRef = useRef<MediaStreamTrack | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const backgroundRef = useRef<VirtualBackgroundProcessor | null>(null);
   const phaseRef = useRef<CallPhase>("idle");
   const chatOpenRef = useRef(false);
   /**
@@ -177,6 +184,10 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
 
     stopStream(screenStreamRef.current);
     screenStreamRef.current = null;
+    if (backgroundRef.current) {
+      void backgroundRef.current.stop(true);
+      backgroundRef.current = null;
+    }
     if (parkedCameraRef.current) {
       try {
         parkedCameraRef.current.stop();
@@ -202,6 +213,7 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
     setCamOn(false);
     setScreenOn(false);
     setFacing("user");
+    setBackgroundMode("none");
   }, []);
 
   /* ------------------------------------------- peer manager plumbing */
@@ -488,7 +500,13 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
 
     if (existing && existing.readyState === "live" && camOn) {
       // Turn off: stop and remove the track so the camera light goes out.
-      existing.stop();
+      if (backgroundRef.current) {
+        await backgroundRef.current.stop(true);
+        backgroundRef.current = null;
+        setBackgroundMode("none");
+      } else {
+        existing.stop();
+      }
       stream.removeTrack(existing);
       await mgr?.replaceVideoTrack(null);
       setCamOn(false);
@@ -525,9 +543,57 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
     }
   }, [camOn, screenOn, facing, micOn, emitMediaState]);
 
+  const changeBackground = useCallback(async (mode: BackgroundMode) => {
+    const stream = localStreamRef.current;
+    const mgr = managerRef.current;
+    if (!stream || !mgr || !camOn || screenOn) {
+      setStatusNote("Turn on your camera and stop screen sharing first.");
+      return;
+    }
+
+    try {
+      const active = backgroundRef.current;
+      if (mode === "none") {
+        if (!active) return;
+        const raw = active.sourceTrack;
+        stream.getVideoTracks().forEach((track) => stream.removeTrack(track));
+        await active.stop(false);
+        backgroundRef.current = null;
+        stream.addTrack(raw);
+        await mgr.replaceVideoTrack(raw);
+        setBackgroundMode("none");
+        setLocalVersion((v) => v + 1);
+        return;
+      }
+      if (active) {
+        active.setMode(mode);
+        setBackgroundMode(mode);
+        return;
+      }
+
+      const raw = stream.getVideoTracks()[0];
+      if (!raw) return;
+      setStatusNote("Preparing virtual background…");
+      const processor = await createVirtualBackground(raw, mode);
+      stream.removeTrack(raw);
+      stream.addTrack(processor.track);
+      backgroundRef.current = processor;
+      await mgr.replaceVideoTrack(processor.track);
+      setBackgroundMode(mode);
+      setLocalVersion((v) => v + 1);
+      setStatusNote("Virtual background is on.");
+    } catch (err) {
+      setStatusNote((err as Error).message || "Could not change the background.");
+    }
+  }, [camOn, screenOn]);
+
   const flipCamera = useCallback(async () => {
     const stream = localStreamRef.current;
     if (!stream || !camOn || screenOn) return;
+    if (backgroundRef.current) {
+      setStatusNote("Turn off the virtual background before switching cameras.");
+      return;
+    }
     const current = stream.getVideoTracks()[0] ?? null;
     const desired: Facing = facing === "user" ? "environment" : "user";
 
@@ -565,6 +631,7 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
       const parked = parkedCameraRef.current;
       parkedCameraRef.current = null;
       if (parked && parked.readyState === "live") {
+        parked.enabled = true;
         stream.addTrack(parked);
         await mgr.replaceVideoTrack(parked);
         setCamOn(true);
@@ -992,6 +1059,7 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
     screenOn,
     facing,
     canFlip,
+    backgroundMode,
     messages,
     unread,
     elapsed,
@@ -1007,6 +1075,7 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
     toggleCamera,
     flipCamera,
     toggleScreenShare,
+    changeBackground,
     sendMessage,
     setChatOpen,
     clearError: () => setError(null),

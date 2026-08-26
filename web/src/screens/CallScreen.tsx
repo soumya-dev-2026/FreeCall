@@ -318,11 +318,28 @@ export function CallScreen({ call, self }: Props) {
                     ? "Switch to back camera"
                     : "Switch to front camera"
                 }
-                disabled={!camOn || screenOn}
+                disabled={!camOn || screenOn || call.backgroundMode !== "none"}
               >
                 <FlipCameraIcon />
               </button>
             )}
+
+            <label className="relative">
+              <span className="sr-only">Virtual background</span>
+              <select
+                value={call.backgroundMode}
+                onChange={(event) => void call.changeBackground(event.target.value as "none" | "blur" | "midnight" | "sunset")}
+                disabled={!camOn || screenOn}
+                className="h-11 max-w-[7.5rem] rounded-full border border-white/10 bg-ink-800 px-3 text-xs text-white outline-none disabled:cursor-not-allowed disabled:opacity-40 sm:max-w-none"
+                title="Virtual background"
+                aria-label="Virtual background"
+              >
+                <option value="none">Background: none</option>
+                <option value="blur">Background: blur</option>
+                <option value="midnight">Background: midnight</option>
+                <option value="sunset">Background: sunset</option>
+              </select>
+            </label>
 
             <button
               type="button"

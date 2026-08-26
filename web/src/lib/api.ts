@@ -102,6 +102,13 @@ export const api = {
     return request<{ user: AuthUser }>("/auth/me");
   },
 
+  updateProfile(input: Omit<AuthUser, "id" | "username" | "online" | "lastSeen">) {
+    return request<{ user: AuthUser }>("/auth/me", {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  },
+
   users() {
     return request<{ users: PublicUser[] }>("/users");
   },
