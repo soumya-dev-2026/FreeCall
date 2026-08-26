@@ -55,8 +55,8 @@
       ]
     ],
     "extra": {
-      "//": "Set serverUrl to your machine's LAN IP so a physical phone can reach the dev server.",
-      "serverUrl": "http://192.168.1.100:4000"
+      "//": "Public HTTPS signaling/API server used by release builds.",
+      "serverUrl": "https://freecall-server.onrender.com"
     }
   }
 }
