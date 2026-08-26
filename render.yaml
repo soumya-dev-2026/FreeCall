@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: freecall-server
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm install && npm run build:server
+    startCommand: npm --workspace server start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_ORIGINS
+        sync: false
+      - key: STUN_URLS
+        value: stun:stun.l.google.com:19302,stun:global.stun.twilio.com:3478
