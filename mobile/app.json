@@ -11,15 +11,22 @@
       "backgroundColor": "#080b14",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.example.freecall",
       "infoPlist": {
         "NSCameraUsageDescription": "FreeCall needs your camera for video calls.",
         "NSMicrophoneUsageDescription": "FreeCall needs your microphone for calls.",
-        "UIBackgroundModes": ["audio", "voip", "remote-notification"]
-      }
+        "UIBackgroundModes": [
+          "audio",
+          "voip",
+          "remote-notification"
+        ]
+      },
+      "bitcode": false
     },
     "android": {
       "package": "com.example.freecall",
@@ -36,7 +43,9 @@
         "android.permission.VIBRATE",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
+        "android.permission.BLUETOOTH",
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "plugins": [
@@ -56,7 +65,10 @@
     ],
     "extra": {
       "//": "Public HTTPS signaling/API server used by release builds.",
-      "serverUrl": "https://freecall-server.onrender.com"
+      "serverUrl": "https://freecall-server.onrender.com",
+      "eas": {
+        "projectId": "7c9045be-91ef-4945-af41-13dad2c09fa2"
+      }
     }
   }
 }

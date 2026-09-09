@@ -246,7 +246,23 @@ let directCallId = null;
   eq("incoming call type", incoming?.type, "direct");
   eq("caller is told the callee is ringing", s.a.last("call:ringing")?.userId, bob.user.id);
 
-  const acceptAck = await s.b.send("call:accept", { callId: ack.callId });
+  const initialMedia = { audio: false, video: true, screen: false };
+  await s.a.send("call:media-state", { callId: ack.callId, state: initialMedia });
+  check("ringing callee does not receive active media yet", !s.b.got("call:media-state"));
+  let configuredBeforeJoin = false;
+  let acceptAck;
+  s.b.socket.listeners.set("call:peer-joined", [() => {
+    configuredBeforeJoin = Boolean(acceptAck?.iceServers?.length);
+  }]);
+  s.b.socket.handlers.get("call:accept")({ callId: ack.callId }, (value) => {
+    acceptAck = value;
+  });
+  check("ICE configuration arrives before peer creation", configuredBeforeJoin);
+  eq("answerer receives caller's existing camera and mic state",
+    s.b.last("call:media-state")?.state, initialMedia);
+  check("participant arrives before its media state",
+    s.b.inbox.findIndex((m) => m.event === "call:peer-joined") <
+    s.b.inbox.findIndex((m) => m.event === "call:media-state"));
   await tick();
   check("call:accept acked ok", acceptAck.ok === true, JSON.stringify(acceptAck));
   eq("caller learns who accepted", s.a.last("call:accepted")?.user?.username, "bob");
@@ -540,8 +556,19 @@ let groupCallId = null;
 
   await s.b.send("call:accept", { callId: ack.callId });
   await tick();
+  await s.a.send("call:media-state", {
+    callId: ack.callId, state: { audio: true, video: false, screen: true },
+  });
+  await s.b.send("call:media-state", {
+    callId: ack.callId, state: { audio: false, video: true, screen: false },
+  });
   await s.c.send("call:accept", { callId: ack.callId });
   await tick();
+  eq("late group joiner receives every existing participant's media state",
+    s.c.all("call:media-state").map((p) => [p.userId, p.state]), [
+      [alice.user.id, { audio: true, video: false, screen: true }],
+      [bob.user.id, { audio: false, video: true, screen: false }],
+    ]);
 
   // Every pair must agree on exactly one offerer.
   const pairs = [

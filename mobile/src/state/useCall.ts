@@ -711,6 +711,20 @@ export function useCall(socket: AppSocket | null, selfId: string | null) {
         });
         return;
       }
+      // Re-publish live state for newcomers, including older signaling servers
+      // that don't replay state sent before the participant answered.
+      const local = localStreamRef.current;
+      if (local && callIdRef.current) {
+        const screen = Boolean(screenStreamRef.current);
+        socket.emit("call:media-state", {
+          callId: callIdRef.current,
+          state: {
+            audio: Boolean(local.getAudioTracks()[0]?.enabled),
+            video: !screen && Boolean(local.getVideoTracks()[0]?.enabled),
+            screen,
+          },
+        });
+      }
       await mgr.addPeer(p.user.id, p.initiator);
     };
 

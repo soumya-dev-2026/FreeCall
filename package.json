@@ -7,6 +7,9 @@
     "server",
     "web"
   ],
+  "overrides": {
+    "qs": "^6.16.0"
+  },
   "scripts": {
     "dev:server": "npm --workspace server run dev",
     "dev:web": "npm --workspace web run dev",
@@ -14,6 +17,7 @@
     "build:web": "npm --workspace web run build",
     "typecheck": "npm --workspace server run typecheck && npm --workspace web run typecheck",
     "test": "node --experimental-strip-types --import ./tools/harness/hooks.mjs tools/harness/run.mjs",
+    "test:media": "node tools/harness/media.mjs",
     "install:all": "npm install && npm --prefix mobile install"
   },
   "keywords": ["webrtc", "socket.io", "video-call", "react", "react-native"],

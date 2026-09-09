@@ -2,7 +2,7 @@
 
 This runs the **real** server code — `server/src/socket.ts`, `routes.ts`,
 `store.ts`, `auth.ts`, `push.ts`, `config.ts`, imported unmodified — and asserts
-the behaviour `CONTRACT.md` promises. 108 assertions, about a second, and
+the behaviour `CONTRACT.md` promises. 113 assertions, about a second, and
 **no `node_modules`**: it needs nothing but Node 22.
 
 ```bash
@@ -80,6 +80,22 @@ either one alone changes no behaviour at all. That fault removes both.
 
 This exercises the signaling server, not media. There is no `RTCPeerConnection`
 here: SDP and ICE payloads are opaque strings, and the suite checks that they
-reach the right peer untouched, not that they describe a valid session. The
-browser and mobile clients aren't covered either — `python3 tools/check.py .`
-is what checks those, statically.
+reach the right peer untouched, not that they describe a valid session. Client negotiation has a separate regression suite:
+
+```bash
+npm run test:media
+```
+
+This requires the workspace TypeScript dependency and exercises both real peer
+managers against a model of WebRTC channel association. Eight cases cover web
+and mobile offerer/answerer combinations, audio/video negotiation, camera
+replacement, and camera upgrades in audio-only calls. It catches the original
+answerer bug where microphone and camera tracks used unnegotiated channels.
+It does not verify actual RTP packets, physical microphones/cameras, browser
+autoplay, or native audio routing.
+
+Before release, call between two devices in both directions. Confirm both
+people hear speech and see moving video; test mute/unmute, camera off/on,
+camera flip, and hangup. Repeat across Wi-Fi and mobile data with TURN
+configured. If the browser shows “Tap to hear call audio”, activate it and
+confirm sound resumes.

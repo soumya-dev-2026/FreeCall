@@ -57,7 +57,8 @@ async function unload(): Promise<void> {
  */
 export async function startRinging(incoming: boolean): Promise<void> {
   await stopRinging();
-  await configureAudioSession(false);
+  // Outgoing ringing starts after capture; keep microphone recording enabled.
+  await configureAudioSession(!incoming);
 
   try {
     const { sound: created } = await Audio.Sound.createAsync(

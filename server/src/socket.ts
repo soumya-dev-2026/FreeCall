@@ -315,6 +315,14 @@ export function registerSocketHandlers(io: IOServer): void {
 
       const meUser = publicUser(userId)!;
 
+      // Configure the answering client's TURN servers before peer-joined can
+      // create a connection and begin gathering candidates.
+      respond({
+        ok: true,
+        iceServers: iceServers(),
+        participants: peersBefore,
+      });
+
       // Existing participants learn about the newcomer...
       for (const peer of peersBefore) {
         io.to(room(peer.id)).emit("call:accepted", {
@@ -335,13 +343,17 @@ export function registerSocketHandlers(io: IOServer): void {
           user: peer,
           initiator: isInitiatorFor(userId, peer.id),
         });
+        // The peer may have published its camera/mic state before we joined.
+        // Replay it after peer-joined, once the client has a participant tile.
+        const state = call.mediaState.get(peer.id);
+        if (state) {
+          socket.emit("call:media-state", {
+            callId: call.id,
+            userId: peer.id,
+            state,
+          });
+        }
       }
-
-      return respond({
-        ok: true,
-        iceServers: iceServers(),
-        participants: peersBefore,
-      });
     });
 
     /* ------------------------------------------------- call:reject */

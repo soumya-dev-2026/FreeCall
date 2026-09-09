@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cx } from "../lib/utils";
 
 interface VideoProps {
@@ -69,16 +69,48 @@ interface AudioProps {
  */
 export function AudioSink({ stream }: AudioProps) {
   const ref = useRef<HTMLAudioElement>(null);
+  const [blocked, setBlocked] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (el.srcObject !== stream) el.srcObject = stream;
-    if (stream) {
-      const p = el.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    }
+    let disposed = false;
+    el.srcObject = stream;
+    setBlocked(false);
+    const play = () => {
+      if (!stream) return;
+      void el.play().then(
+        () => { if (!disposed) setBlocked(false); },
+        () => { if (!disposed) setBlocked(true); }
+      );
+    };
+    play();
+    // Tracks can arrive separately on the same stable MediaStream object.
+    stream?.addEventListener("addtrack", play);
+    return () => {
+      disposed = true;
+      stream?.removeEventListener("addtrack", play);
+      el.srcObject = null;
+    };
   }, [stream]);
 
-  return <audio ref={ref} autoPlay className="hidden" />;
+  return (
+    <>
+      <audio ref={ref} autoPlay className="hidden" />
+      {blocked && (
+        <button
+          type="button"
+          className="fixed left-1/2 top-20 z-50 -translate-x-1/2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-black shadow-lg"
+          onClick={() => {
+            void ref.current?.play().then(
+              () => setBlocked(false),
+              () => setBlocked(true)
+            );
+          }}
+        >
+          Tap to hear call audio
+        </button>
+      )}
+    </>
+  );
 }

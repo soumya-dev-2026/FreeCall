@@ -70,9 +70,10 @@ npm run build:web            # vite build → web/dist
 ```
 
 The server does not serve the web app; `web/dist` is a static bundle for any
-host you like. Two things have to line up: `VITE_SERVER_URL` is baked in **at
-build time**, and whatever origin you serve the bundle from must appear in the
-server's `CLIENT_ORIGINS`. Serve it over HTTPS — browsers won't grant camera or
+host you like. Production uses same-origin API and Socket.IO URLs by default. The Cloudflare
+Pages gateway forwards them to the configured backend; see [CLOUDFLARE.md](CLOUDFLARE.md).
+For a different host without that gateway, set `VITE_SERVER_URL` at build time
+and add the web origin to the server's `CLIENT_ORIGINS`. Serve it over HTTPS — browsers won't grant camera or
 microphone access to an insecure origin that isn't `localhost`.
 
 ---
@@ -149,8 +150,9 @@ infrastructure.
 The clients need to know where the server is:
 
 - **Web** — `VITE_SERVER_URL`, or nothing at all: it defaults to
-  `http://<current-hostname>:4000`, which is correct for both localhost and a
-  phone loading the dev server over the LAN.
+  the current origin in production and `http://<current-hostname>:4000` during
+  local development. The Cloudflare gateway makes the production origin serve
+  both the web app and the backend API.
 - **Mobile** — `expo.extra.serverUrl` in `mobile/app.json`. A phone can't reach
   your computer's `localhost`, so this must be your machine's LAN IP.
 
@@ -214,7 +216,7 @@ also warns about events declared but never emitted, routes missing from
 `noUnusedLocals`). Run it before you commit; it's fast and needs no
 `node_modules`.
 
-Then there's the behavioural test — 108 assertions that drive the real
+Then there's the behavioural test — 113 assertions that drive the real
 signaling server through every call lifecycle in `CONTRACT.md`:
 
 ```bash

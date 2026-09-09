@@ -6,9 +6,9 @@
  *
  * Two design decisions worth knowing:
  *
- * 1. **Pre-created transceivers.** Every peer connection is built with an
- *    audio and a video transceiver up front, even for audio-only calls. That
- *    way turning the camera on later, flipping cameras, or starting a screen
+ * 1. **Reserved transceivers.** Each offer reserves audio and video channels.
+ *    The answerer adopts them, even for audio-only calls. Turning the camera
+ *    on later, flipping cameras, or starting a screen
  *    share is just `sender.replaceTrack()` — no SDP renegotiation, which is
  *    where most mesh-calling bugs live.
  *
@@ -147,15 +147,17 @@ export class PeerManager {
     };
     this.peers.set(userId, entry);
 
-    // Pre-create transceivers so later track swaps need no renegotiation.
-    const audioTx = pc.addTransceiver(this.audioTrack ?? "audio", {
-      direction: "sendrecv",
-    });
-    const videoTx = pc.addTransceiver(this.videoTrack ?? "video", {
-      direction: "sendrecv",
-    });
-    entry.audioSender = audioTx.sender;
-    entry.videoSender = videoTx.sender;
+    // Only the offerer creates channels. The answerer adopts the offered ones.
+    if (initiator) {
+      const audioTx = pc.addTransceiver(this.audioTrack ?? "audio", {
+        direction: "sendrecv",
+      });
+      const videoTx = pc.addTransceiver(this.videoTrack ?? "video", {
+        direction: "sendrecv",
+      });
+      entry.audioSender = audioTx.sender;
+      entry.videoSender = videoTx.sender;
+    }
 
     pc.onicecandidate = (ev) => {
       if (ev.candidate) this.events.onIce(userId, ev.candidate.toJSON());
@@ -254,6 +256,22 @@ export class PeerManager {
         }
       } else {
         await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+      }
+
+      // Explicitly pre-created transceivers cannot adopt an incoming offer.
+      // Bind local tracks to the transceivers created by setRemoteDescription.
+      for (const tx of pc.getTransceivers()) {
+        if (tx.mid === null) continue;
+        const kind = tx.receiver.track.kind;
+        if (kind === "audio") {
+          tx.direction = "sendrecv";
+          entry.audioSender = tx.sender;
+          await tx.sender.replaceTrack(this.audioTrack);
+        } else if (kind === "video") {
+          tx.direction = "sendrecv";
+          entry.videoSender = tx.sender;
+          await tx.sender.replaceTrack(this.videoTrack);
+        }
       }
 
       await this.flushIce(userId);

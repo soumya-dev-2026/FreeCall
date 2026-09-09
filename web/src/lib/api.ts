@@ -12,7 +12,9 @@ import type {
 /** Server base URL. Override with VITE_SERVER_URL for LAN/phone testing. */
 export const SERVER_URL: string =
   (import.meta.env.VITE_SERVER_URL as string | undefined) ??
-  `${location.protocol}//${location.hostname}:4000`;
+  (import.meta.env.DEV
+    ? `${location.protocol}//${location.hostname}:4000`
+    : location.origin);
 
 const TOKEN_KEY = "freecall.token";
 

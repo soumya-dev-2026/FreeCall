@@ -4,7 +4,8 @@
  * handful of npm packages the server touches at runtime resolve to the tiny
  * shims in ./shims/.
  */
-import { registerHooks } from "node:module";
+import * as module from "node:module";
+import { isMainThread } from "node:worker_threads";
 import { existsSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve as pathResolve } from "node:path";
@@ -21,25 +22,28 @@ const SHIMS = new Set([
   "express",
 ]);
 
-registerHooks({
-  resolve(specifier, context, nextResolve) {
-    if (SHIMS.has(specifier)) {
-      return {
-        url: pathToFileURL(pathResolve(HERE, "shims", `${specifier}.mjs`)).href,
-        shortCircuit: true,
-      };
-    }
+export function resolve(specifier, context, nextResolve) {
+  if (SHIMS.has(specifier)) {
+    return {
+      url: pathToFileURL(pathResolve(HERE, "shims", `${specifier}.mjs`)).href,
+      shortCircuit: true,
+    };
+  }
 
-    if (specifier.startsWith(".") && context.parentURL) {
-      const parentDir = dirname(fileURLToPath(context.parentURL));
-      const base = pathResolve(parentDir, specifier);
-      for (const candidate of [`${base}.ts`, `${base}/index.ts`]) {
-        if (existsSync(candidate)) {
-          return { url: pathToFileURL(candidate).href, shortCircuit: true };
-        }
+  if (specifier.startsWith(".") && context.parentURL) {
+    const parentDir = dirname(fileURLToPath(context.parentURL));
+    const base = pathResolve(parentDir, specifier);
+    for (const candidate of [`${base}.ts`, `${base}/index.ts`]) {
+      if (existsSync(candidate)) {
+        return { url: pathToFileURL(candidate).href, shortCircuit: true };
       }
     }
+  }
 
-    return nextResolve(specifier, context);
-  },
-});
+  return nextResolve(specifier, context);
+}
+
+if (isMainThread) {
+  if (module.registerHooks) module.registerHooks({ resolve });
+  else module.register(import.meta.url);
+}

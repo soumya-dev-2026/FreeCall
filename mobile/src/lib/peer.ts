@@ -121,15 +121,17 @@ export class PeerManager {
     };
     this.peers.set(userId, entry);
 
-    // Pre-created transceivers: later track swaps skip renegotiation.
-    const audioTx = (pc as any).addTransceiver(this.audioTrack ?? "audio", {
-      direction: "sendrecv",
-    });
-    const videoTx = (pc as any).addTransceiver(this.videoTrack ?? "video", {
-      direction: "sendrecv",
-    });
-    entry.audioSender = audioTx?.sender ?? null;
-    entry.videoSender = videoTx?.sender ?? null;
+    // Only the offerer creates channels. The answerer adopts the offered ones.
+    if (initiator) {
+      const audioTx = (pc as any).addTransceiver(this.audioTrack ?? "audio", {
+        direction: "sendrecv",
+      });
+      const videoTx = (pc as any).addTransceiver(this.videoTrack ?? "video", {
+        direction: "sendrecv",
+      });
+      entry.audioSender = audioTx?.sender ?? null;
+      entry.videoSender = videoTx?.sender ?? null;
+    }
 
     (pc as any).addEventListener("icecandidate", (ev: any) => {
       if (ev.candidate) {
@@ -217,6 +219,22 @@ export class PeerManager {
         }
       }
       await pc.setRemoteDescription(new RTCSessionDescription(sdp as any));
+      // Explicitly pre-created transceivers cannot adopt an incoming offer.
+      // Bind local tracks to the transceivers created by setRemoteDescription.
+      for (const tx of pc.getTransceivers()) {
+        if (tx.mid === null) continue;
+        const kind = tx.receiver.track?.kind;
+        if (kind === "audio") {
+          tx.direction = "sendrecv";
+          entry.audioSender = tx.sender;
+          await tx.sender.replaceTrack(this.audioTrack);
+        } else if (kind === "video") {
+          tx.direction = "sendrecv";
+          entry.videoSender = tx.sender;
+          await tx.sender.replaceTrack(this.videoTrack);
+        }
+      }
+
       await this.flushIce(userId);
 
       const answer = await pc.createAnswer();
